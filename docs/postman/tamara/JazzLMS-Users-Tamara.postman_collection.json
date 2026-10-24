@@ -18,7 +18,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\n\nconst b = pm.response.json();\npm.test(\"Есть token из 3 частей\", () => {\n  pm.expect(b).to.have.property(\"token\");\n  pm.expect(b.token.split(\".\")).to.have.lengthOf(3);\n});\npm.test(\"user.username = admin, тип SUPER_ADMIN\", () => {\n  pm.expect(b.user.username).to.eql(\"admin\");\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n});\npm.test(\"Нет passwordHash в ответе\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\n\npm.environment.set(\"adminToken\", b.token);\npm.environment.set(\"adminId\", b.user.id);"
+                  "pm.test(\"Статус 200\", () => pm.response.to.have.status(200));\npm.test(\"Content-Type JSON\", () =>\n  pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));\npm.test(\"Быстрее 1500 мс\", () => pm.expect(pm.response.responseTime).to.be.below(1500));\n\nconst b = pm.response.json();\npm.test(\"Есть token из 3 частей\", () => {\n  pm.expect(b).to.have.property(\"token\");\n  pm.expect(b.token.split(\".\")).to.have.lengthOf(3);\n});\npm.test(\"user.username = admin, тип SUPER_ADMIN\", () => {\n  pm.expect(b.user.username).to.eql(\"admin\");\n  pm.expect(b.user.userType).to.eql(\"SUPER_ADMIN\");\n});\npm.test(\"Нет passwordHash в ответе\", () =>\n  pm.expect(JSON.stringify(b)).to.not.include(\"passwordHash\"));\n\npm.environment.set(\"adminToken\", b.token);\npm.environment.set(\"adminId\", b.user.id);\n"
                 ]
               }
             }
@@ -105,27 +105,16 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"201 создан или 409 уже существует\", () =>",
-                  "  pm.expect(pm.response.code).to.be.oneOf([201, 409]));",
-                  "",
-                  "if (pm.response.code === 201) {",
-                  "  pm.environment.set(\"learnerId\", pm.response.json().id);",
-                  "}",
-                  "",
-                  "pm.sendRequest({",
-                  "  url: pm.environment.get(\"baseUrl\") + \"/api/auth/login\",",
-                  "  method: \"POST\",",
-                  "  header: { \"Content-Type\": \"application/json\" },",
-                  "  body: { mode: \"raw\", raw: JSON.stringify({",
-                  "    username: pm.environment.get(\"learnerUsername\"),",
-                  "    password: pm.environment.get(\"learnerPassword\") }) }",
-                  "}, (err, res) => {",
-                  "  pm.test(\"ученик залогинился, learnerToken записан\", () => {",
-                  "    pm.expect(err).to.be.null;",
-                  "    pm.expect(res.code).to.eql(200);",
-                  "  });",
-                  "  if (!err) pm.environment.set(\"learnerToken\", res.json().token);",
-                  "});"
+                  "pm.test(\"201 создан или 409 уже существует\", () =>\n  pm.expect(pm.response.code).to.be.oneOf([201, 409]));\n\nif (pm.response.code === 201) {\n  pm.environment.set(\"learnerId\", pm.response.json().id);\n}\n\npm.sendRequest({\n  url: pm.environment.get(\"baseUrl\") + \"/api/auth/login\",\n  method: \"POST\",\n  header: { \"Content-Type\": \"application/json\" },\n  body: { mode: \"raw\", raw: JSON.stringify({\n    username: pm.environment.get(\"learnerUsername\"),\n    password: pm.environment.get(\"learnerPassword\") }) }\n}, (err, res) => {\n  pm.test(\"ученик залогинился, learnerToken записан\", () => {\n    pm.expect(err).to.be.null;\n    pm.expect(res.code).to.eql(200);\n  });\n  if (!err) pm.environment.set(\"learnerToken\", res.json().token);\n});"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  ""
                 ]
               }
             }
@@ -160,7 +149,17 @@
           },
           "response": []
         }
-      ]
+      ],
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{adminToken}}",
+            "type": "string"
+          }
+        ]
+      }
     },
     {
       "name": "01 user-service",
@@ -857,41 +856,6 @@
               "response": []
             },
             {
-              "name": "USR-01 · GET /api/users?search · несуществующий → []",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список пуст\r\npm.test(\"Список пуст\", function () {\r\n pm.expect(users).to.be.empty;\r\n });"
-                    ]
-                  }
-                }
-              ],
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{userSvc}}/api/users?search=xyz_нет_такого",
-                  "host": [
-                    "{{userSvc}}"
-                  ],
-                  "path": [
-                    "api",
-                    "users"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "xyz_нет_такого"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
               "name": "USR-01 · GET /api/users?active=false · только неактивные",
               "event": [
                 {
@@ -934,7 +898,7 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список не пуст\r\npm.test(\"Список не пуст\", function () {\r\n        pm.expect(users).to.not.be.empty;\r\n    });\r\n\r\n//6. Каждый Элемент содежжит аида\r\npm.test(\"Каждый элемент содержит 'lora'\", function () {\r\n     users.forEach(function(user) {\r\n    const text = (user.username + \" \" + user.email + \" \" + user.firstName + \" \" + user.lastName).toLowerCase()\r\n    pm.expect(text).to.include(\"lora\");\r\n     }); \r\n});   "
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список не пуст\r\npm.test(\"Список не пуст\", function () {\r\n        pm.expect(users).to.not.be.empty;\r\n    });\r\n\r\n//6. Каждый Элемент содежжит lora\r\npm.test(\"Каждый элемент содержит 'lora'\", function () {\r\n     users.forEach(function(user) {\r\n    const text = (user.username + \" \" + user.email + \" \" + user.firstName + \" \" + user.lastName).toLowerCase()\r\n    pm.expect(text).to.include(\"lora\");\r\n     }); \r\n});   "
                     ]
                   }
                 }
@@ -1215,7 +1179,15 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": ""
+                  "raw": "USR-04 · GET /api/users/{id} · admin свой id → 200",
+                  "host": [
+                    "USR-04 · GET "
+                  ],
+                  "path": [
+                    "api",
+                    "users",
+                    "{id} · admin свой id → 200"
+                  ]
                 }
               },
               "response": []
@@ -3705,6 +3677,41 @@
                   "path": [
                     "api",
                     "settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "USR-01 · GET /api/users?search · несуществующий → []",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// 1. Статус ответа 200\r\npm.test(\"Статус 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Ответ в формате JSON\r\npm.test(\"Content-Type содержит JSON\", function () {\r\n    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");\r\n});\r\n\r\n// 3. Время ответа меньше 1500 мс\r\npm.test(\"Время ответа меньше 1500 мс\", function () {\r\n    pm.expect(pm.response.responseTime).to.be.below(1500);\r\n});\r\n\r\n// получить тело ответа\r\nconst users = pm.response.json();\r\n\r\n// 4. Ответ является массивом\r\npm.test(\"Ответ является массивом\", function () {\r\n    pm.expect(users).to.be.an(\"array\");\r\n});\r\n\r\n// 5. Список пуст\r\npm.test(\"Список пуст\", function () {\r\n pm.expect(users).to.be.empty;\r\n });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{userSvc}}/api/users?search=xyz_нет_такого",
+                  "host": [
+                    "{{userSvc}}"
+                  ],
+                  "path": [
+                    "api",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "xyz_нет_такого"
+                    }
                   ]
                 }
               },
